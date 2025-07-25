@@ -59,7 +59,7 @@ async def create_news(
     db_news = NewsModel(
         title=news_data.title,
         subtitle=news_data.subtitle,
-        image_url=image_path,
+        image_url=f"/static/{image.filename}",
         image_description=news_data.image_description,
         body=news_data.body,
         date=datetime.now()

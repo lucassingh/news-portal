@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User as UserModel
 from app.schemas.user import UserCreate, User as UserSchema, Token
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.security import get_password_hash, verify_password, create_access_token, verify_token
 
 router = APIRouter(tags=["auth"])
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 @router.post("/register", response_model=UserSchema)
 async def register_user(
@@ -56,3 +59,20 @@ async def login_user(
         data={"sub": user.email, "scopes": scopes}
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/verify")
+async def verify_token_endpoint(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    user = verify_token(token, db)
+    
+    # Si llegamos aquí, el token es válido
+    return {
+        "status": "valid",
+        "user": {
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active
+        }
+    }

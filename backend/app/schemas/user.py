@@ -13,12 +13,6 @@ class UserCreate(UserBase):
     password: str
     role: UserRole = Field(default="user")
 
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
-    role: Optional[UserRole] = None
-    is_active: Optional[bool] = None
-
 class User(UserBase):
     id: int
     role: UserRole
@@ -27,6 +21,15 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class TokenData(BaseModel):
+    email: str | None = None
