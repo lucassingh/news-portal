@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 export const buildImageUrl = (imagePath: string | undefined | null): string => {
     if (!imagePath?.trim()) return '';
 
@@ -21,4 +23,15 @@ export const buildImageUrl = (imagePath: string | undefined | null): string => {
         console.error('Error construyendo la URL de la imagen:', error);
         return '';
     }
+};
+
+export const sanitizeHTML = (html: string): string => {
+    return DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: [
+            'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'strong', 'em', 'u', 's', 'blockquote', 'ol', 'ul', 'li',
+            'a', 'img', 'span', 'div',
+        ],
+        ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'class', 'target'],
+    });
 };

@@ -12,7 +12,7 @@ import {
 import { CiImageOn } from 'react-icons/ci';
 import { useNavigate } from 'react-router-dom';
 import { enqueueSnackbar } from 'notistack';
-import { useNews } from '../../../hooks/useHooks';
+import { useNews } from '../../../hooks/useNews';
 
 const validationSchema = Yup.object({
     title: Yup.string().required('El título es requerido'),

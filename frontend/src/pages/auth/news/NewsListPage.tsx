@@ -27,7 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import type { News } from '../../../interfaces/news';
 import { CiEdit, CiEraser, CiRead } from 'react-icons/ci';
 import { enqueueSnackbar } from 'notistack';
-import { useNews } from '../../../hooks/useHooks';
+import { useNews } from '../../../hooks/useNews';
 import { buildImageUrl } from '../../../../utils/helpers';
 
 const NewsListPage: React.FC = () => {

@@ -1,0 +1,26 @@
+/* RichTextEditor.css */
+.quill-container {
+    height: 100%;
+    min-height: 300px;
+    margin-bottom: 50px;
+}
+
+.quill-container .ql-container {
+    height: calc(100% - 42px);
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.quill-container .ql-toolbar {
+    border-radius: 4px 4px 0 0;
+    border: 1px solid #ccc;
+}
+
+.quill-container .ql-container {
+    border-radius: 0 0 4px 4px;
+    border: 1px solid #ccc;
+}
+
+.quill-container .ql-editor {
+    min-height: 200px;
+}
