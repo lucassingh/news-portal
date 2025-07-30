@@ -51,7 +51,7 @@ async def read_user(
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if current_user.role != UserRole.ADMIN and current_user.id != user_id:
+    if current_user.role != "admin" and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only access your own user information"
@@ -71,13 +71,13 @@ async def update_user(
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if current_user.role != UserRole.ADMIN and current_user.id != user_id:
+    if current_user.role != "admin" and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update your own user information"
         )
     
-    if user_data.role is not None and current_user.role != UserRole.ADMIN:
+    if user_data.role is not None and current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin can change user roles"

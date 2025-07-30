@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 from fastapi import Form
 
 class NewsBase(BaseModel):
@@ -29,6 +30,7 @@ class NewsResponse(NewsBase):
     id: int
     image_url: Optional[str] = None
     date: datetime
+    user_id: UUID
     
     class Config:
         from_attributes = True

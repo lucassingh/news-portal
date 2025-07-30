@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 
 class News(Base):
@@ -11,3 +12,4 @@ class News(Base):
     image_description = Column(String(200))
     body = Column(Text)
     date = Column(DateTime)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))

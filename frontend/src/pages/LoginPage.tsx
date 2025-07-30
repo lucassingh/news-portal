@@ -57,21 +57,7 @@ export const LoginPage: React.FC = () => {
         validationSchema: validationSchema,
         onSubmit: async (values) => {
             try {
-                const formData = new FormData();
-                formData.append('username', values.username);
-                formData.append('password', values.password);
-                formData.append('grant_type', 'password');
-
-                const response = await apiLogin(formData);
-
-                const mockUser: User = {
-                    id: 1,
-                    email: values.username,
-                    role: values.username.includes('admin') ? 'admin' : 'user',
-                    is_active: true
-                };
-
-                login(response.data.access_token, mockUser);
+                await login(values.username, values.password);
 
                 Swal.fire({
                     icon: 'success',

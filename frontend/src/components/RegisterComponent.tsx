@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import type { RegisterFormValues } from '../interfaces/user';
 import { UserRole } from '../interfaces/user';
-import api from '../config/apiConfig';
+import { supabase } from '../config/apiConfig';
 
 interface RegisterComponentProps {
     onSwitchToLogin: () => void;
@@ -51,26 +51,60 @@ export const RegisterComponent: React.FC<RegisterComponentProps> = ({
         validationSchema: validationSchema,
         onSubmit: async (values) => {
             try {
-                await api.post('/auth/register', {
-                    email: values.email,
+                // 1. Registrar usuario en Auth de Supabase
+                const { error: authError } = await supabase.auth.signUp({
+                    email: values.email.trim(),
                     password: values.password,
-                    role: values.role
+                    options: {
+                        data: {
+                            role: values.role
+                        }
+                    }
                 });
+
+                if (authError) throw authError;
+
+                // 2. Hashear la contraseña antes de guardar en la tabla users
+                const { data: hashedData, error: hashError } = await supabase.rpc('hash_password', {
+                    plain_password: values.password
+                });
+
+                if (hashError) throw hashError;
+
+                // 3. Crear registro en tabla users
+                const { error: userError } = await supabase
+                    .from('users')
+                    .insert({
+                        email: values.email.trim(),
+                        hashed_password: hashedData, // Usar el hash generado
+                        role: values.role,
+                        is_active: true
+                    });
+
+                if (userError) throw userError;
 
                 Swal.fire({
                     icon: 'success',
                     title: '¡Registro exitoso!',
-                    text: 'Tu cuenta ha sido creada correctamente',
+                    text: 'Por favor verifica tu email para activar tu cuenta',
                     confirmButtonColor: theme.palette.primary.main
                 }).then(() => {
                     onRegisterSuccess();
                 });
             } catch (error) {
                 console.error('Register error:', error);
+                let errorMessage = 'Hubo un problema al registrar tu cuenta';
+
+                if (error instanceof Error) {
+                    errorMessage = error.message;
+                } else if (typeof error === 'string') {
+                    errorMessage = error;
+                }
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Hubo un problema al registrar tu cuenta. Por favor, inténtalo de nuevo.',
+                    text: errorMessage,
                     confirmButtonColor: theme.palette.primary.main
                 });
             }

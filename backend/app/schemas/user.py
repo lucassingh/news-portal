@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from enum import Enum
 from typing import Optional
+import uuid
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -14,12 +15,14 @@ class UserCreate(UserBase):
     role: UserRole = Field(default="user")
 
 class User(UserBase):
-    id: int
-    role: UserRole
+    id: uuid.UUID
     is_active: bool
     
     class Config:
         from_attributes = True
+        json_encoders = {
+            uuid.UUID: lambda v: str(v)
+        }
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None

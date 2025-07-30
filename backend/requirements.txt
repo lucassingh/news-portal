@@ -8,5 +8,8 @@ pillow
 python-dotenv
 email-validator
 pydantic[email]
-bcrypt>=3.2.0
+bcrypt>=4.0.1
 passlib>=1.7.4
+python-dotenv
+psycopg2
+supabase

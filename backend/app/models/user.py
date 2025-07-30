@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Column, String, Boolean
 from app.database import Base
-
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 from enum import Enum as PyEnum
 
 class UserRole(str, PyEnum):
@@ -11,21 +11,16 @@ class UserRole(str, PyEnum):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(100), unique=True, index=True)
     hashed_password = Column(String(200))
     is_active = Column(Boolean, default=True)
-    role = Column(SQLEnum(UserRole), default=UserRole.USER)
+    role = Column(String(10), default="user")
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            UserRole: lambda v: v.value
-        }
     def to_dict(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "email": self.email,
-            "role": self.role.value if self.role else None,
+            "role": self.role,
             "is_active": self.is_active
         }
