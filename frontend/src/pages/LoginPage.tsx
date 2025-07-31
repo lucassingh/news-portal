@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../context/AuthContext';
 import { RegisterComponent } from '../components/RegisterComponent';
@@ -19,8 +18,7 @@ import {
     styled
 } from '@mui/material';
 import backgroundImage from '../assets/background.png';
-import type { LoginFormValues, User } from '../interfaces/user';
-import { apiLogin } from '../config/apiConfig';
+import type { LoginFormValues } from '../interfaces/user';
 
 const FormContainer = styled(Paper)(({ theme }) => ({
     borderRadius: 8,
@@ -36,7 +34,6 @@ const FormContainer = styled(Paper)(({ theme }) => ({
 
 export const LoginPage: React.FC = () => {
     const theme = useTheme();
-    const navigate = useNavigate();
     const { login } = useAuth();
     const [showRegister, setShowRegister] = useState(false);
 
@@ -58,18 +55,14 @@ export const LoginPage: React.FC = () => {
         onSubmit: async (values) => {
             try {
                 await login(values.username, values.password);
-
-                Swal.fire({
+                await Swal.fire({
                     icon: 'success',
                     title: '¡Bienvenido!',
                     text: 'Has iniciado sesión correctamente',
                     timer: 2000,
                     showConfirmButton: false
-                }).then(() => {
-                    navigate('/news');
                 });
             } catch (error) {
-                console.error('Login error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',

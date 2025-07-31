@@ -8,6 +8,7 @@ export type UserRole = typeof UserRole[keyof typeof UserRole];
 export interface TokenResponse {
     access_token: string;
     token_type: string;
+    user: User;
 }
 
 export interface User {

@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../interfaces/user';
-import { supabase } from '../config/apiConfig';
+import api, { apiLogin } from '../config/apiConfig';
 import { useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
-import theme from '../config/Theme.config';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -20,151 +18,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const navigate = useNavigate()
+    const navigate = useNavigate();
 
-    const fetchUserProfile = async (email: string) => {
-        try {
-            const { data: userData, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('email', email)
-                .single();
-
-            if (error) throw error;
-            if (userData) {
-                setUser(userData);
-                // Guarda el rol en localStorage
-                localStorage.setItem('userRole', userData.role);
-            }
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-            await supabase.auth.signOut();
+    const verifyToken = async (): Promise<boolean> => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setIsAuthenticated(false);
             setUser(null);
-            localStorage.removeItem('userRole');
+            return false;
+        }
+
+        try {
+            const response = await api.get<{ user: User }>('/auth/verify');
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+            return true;
+        } catch (error) {
+            localStorage.removeItem('token');
+            setIsAuthenticated(false);
+            setUser(null);
+            return false;
         }
     };
 
     useEffect(() => {
-        const checkSession = async () => {
+        const checkAuth = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
-                const { data: { session } } = await supabase.auth.getSession();
-
-                if (session?.user?.email) {
-                    await fetchUserProfile(session.user.email);
-                    setIsAuthenticated(true);
-                } else {
-                    setIsAuthenticated(false);
-                }
+                await verifyToken();
             } catch (error) {
-                console.error('Session check error:', error);
-                setIsAuthenticated(false);
+                console.error('Auth check error:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        checkSession();
+        checkAuth();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_, session) => {
-                if (session?.user?.email) {
-                    await fetchUserProfile(session.user.email);
-                    setIsAuthenticated(true);
-                } else {
-                    setIsAuthenticated(false);
-                    setUser(null);
-                }
-            }
-        );
-
-        return () => subscription.unsubscribe();
+        const interval = setInterval(verifyToken, 30 * 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
 
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string): Promise<void> => {
         try {
             setLoading(true);
-            // Elimina la declaración de data ya que no la usas
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password
-            });
+            const { access_token, user } = await apiLogin(email, password);
 
-            if (error) {
-                console.error('Detalles del error:', {
-                    message: error.message,
-                    status: error.status,
-                    name: error.name
-                });
+            localStorage.setItem('token', access_token);
+            localStorage.setItem('userRole', user.role);
+            setUser(user);
+            setIsAuthenticated(true);
 
-                if (error.message.includes('Email not confirmed')) {
-                    const { error: resendError } = await supabase.auth.resend({
-                        type: 'signup',
-                        email,
-                        options: { emailRedirectTo: `${window.location.origin}/login` }
-                    });
-
-                    if (resendError) throw resendError;
-                    throw new Error('Por favor verifica tu email. Te hemos enviado otro enlace de confirmación.');
-                }
-                throw error;
-            }
-
-            // Verificación de sesión
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                throw new Error('No se pudo obtener la sesión después del login');
-            }
-
-            await fetchUserProfile(email);
-
-            Swal.fire({
-                icon: 'success',
-                title: '¡Bienvenido!',
-                text: 'Has iniciado sesión correctamente',
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                navigate('/news');
-            });
+            // Redirigir después de actualizar el estado
+            navigate('/news');
         } catch (error) {
-            // Manejo de errores permanece igual
-            console.error('Error completo:', error);
-            let errorMessage = 'Credenciales inválidas. Por favor, inténtalo de nuevo.';
-
-            if (error instanceof Error) {
-                if (error.message.includes('email not confirmed')) {
-                    errorMessage = 'Por favor verifica tu email antes de iniciar sesión.';
-                } else if (error.message.includes('Invalid login credentials')) {
-                    errorMessage = 'Email o contraseña incorrectos.';
-                } else {
-                    errorMessage = error.message;
-                }
-            }
-
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: errorMessage,
-                confirmButtonColor: theme.palette.primary.main
-            });
+            console.error('Login error:', error);
+            throw error;
         } finally {
             setLoading(false);
         }
     };
 
-    const logout = async () => {
+    const logout = async (): Promise<void> => {
         try {
             setLoading(true);
-            await supabase.auth.signOut();
-            setIsAuthenticated(false);
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
             setUser(null);
+            setIsAuthenticated(false);
+            navigate('/login');
         } finally {
             setLoading(false);
         }
     };
 
-    const value = {
+    const value: AuthContextType = {
         isAuthenticated,
         user,
         login,

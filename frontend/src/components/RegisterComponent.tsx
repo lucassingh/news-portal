@@ -13,11 +13,18 @@ import {
 } from '@mui/material';
 import type { RegisterFormValues } from '../interfaces/user';
 import { UserRole } from '../interfaces/user';
-import { supabase } from '../config/apiConfig';
+import api from '../config/apiConfig';
+import { AxiosError } from 'axios';
 
 interface RegisterComponentProps {
     onSwitchToLogin: () => void;
     onRegisterSuccess: () => void;
+}
+
+interface ApiErrorResponse {
+    detail?: string;
+    message?: string;
+    // Agrega otros campos que pueda devolver tu API
 }
 
 export const RegisterComponent: React.FC<RegisterComponentProps> = ({
@@ -51,54 +58,38 @@ export const RegisterComponent: React.FC<RegisterComponentProps> = ({
         validationSchema: validationSchema,
         onSubmit: async (values) => {
             try {
-                // 1. Registrar usuario en Auth de Supabase
-                const { error: authError } = await supabase.auth.signUp({
+                // Registrar usuario directamente con TU API
+                await api.post('/auth/register', {
                     email: values.email.trim(),
                     password: values.password,
-                    options: {
-                        data: {
-                            role: values.role
-                        }
-                    }
+                    role: values.role
                 });
-
-                if (authError) throw authError;
-
-                // 2. Hashear la contraseña antes de guardar en la tabla users
-                const { data: hashedData, error: hashError } = await supabase.rpc('hash_password', {
-                    plain_password: values.password
-                });
-
-                if (hashError) throw hashError;
-
-                // 3. Crear registro en tabla users
-                const { error: userError } = await supabase
-                    .from('users')
-                    .insert({
-                        email: values.email.trim(),
-                        hashed_password: hashedData, // Usar el hash generado
-                        role: values.role,
-                        is_active: true
-                    });
-
-                if (userError) throw userError;
 
                 Swal.fire({
                     icon: 'success',
                     title: '¡Registro exitoso!',
-                    text: 'Por favor verifica tu email para activar tu cuenta',
+                    text: 'Tu cuenta ha sido creada correctamente',
                     confirmButtonColor: theme.palette.primary.main
                 }).then(() => {
                     onRegisterSuccess();
                 });
-            } catch (error) {
-                console.error('Register error:', error);
+            } catch (err) {
+                console.error('Register error:', err);
                 let errorMessage = 'Hubo un problema al registrar tu cuenta';
 
-                if (error instanceof Error) {
-                    errorMessage = error.message;
-                } else if (typeof error === 'string') {
-                    errorMessage = error;
+                // Manejo seguro de errores con TypeScript
+                if (typeof err === 'object' && err !== null) {
+                    const error = err as AxiosError<ApiErrorResponse>;
+
+                    if (error.response?.data?.detail) {
+                        errorMessage = error.response.data.detail;
+                    } else if (error.response?.data?.message) {
+                        errorMessage = error.response.data.message;
+                    } else if (error instanceof Error) {
+                        errorMessage = error.message;
+                    }
+                } else if (typeof err === 'string') {
+                    errorMessage = err;
                 }
 
                 Swal.fire({

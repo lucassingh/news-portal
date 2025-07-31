@@ -1,10 +1,5 @@
 import axios from 'axios';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_KEY
-);
+import type { TokenResponse } from '../interfaces/user';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -13,15 +8,11 @@ const api = axios.create({
     }
 });
 
-api.interceptors.request.use(async (config) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-        config.headers.Authorization = `Bearer ${session.access_token}`;
-
-        // Añade el email del usuario como header si está disponible
-        if (session.user?.email) {
-            config.headers['X-User-Email'] = session.user.email;
-        }
+// Interceptor para añadir el token JWT
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
@@ -30,7 +21,7 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            supabase.auth.signOut();
+            localStorage.removeItem('token');
             window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -39,32 +30,37 @@ api.interceptors.response.use(
 
 export const apiLogin = async (email: string, password: string) => {
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
+        const response = await api.post<TokenResponse>('/auth/login',
+            new URLSearchParams({
+                username: email,
+                password: password
+            }), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
         });
 
-        if (error) {
-            console.error('Error de Supabase:', {
-                message: error.message,
-                status: error.status,
-                name: error.name
-            });
-            throw error;
+        console.log('Login response:', response.data); // Agrega esto para depuración
+
+        if (!response.data?.access_token) {
+            throw new Error('Respuesta de login incompleta - falta access_token');
         }
 
-        // Verificar que realmente tenemos una sesión
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            throw new Error('No session after login');
-        }
+        // Hacer más flexible el manejo del usuario
+        const user = response.data.user || {
+            id: 0,
+            email: email,
+            role: 'user' // valor por defecto
+        };
 
-        return data;
+        return {
+            access_token: response.data.access_token,
+            user: user
+        };
     } catch (error) {
-        console.error('Error completo en apiLogin:', error);
-        throw error;
+        console.error('Login error details:');
+        throw new Error('Error al iniciar sesión');
     }
 };
 
-export { supabase };
 export default api;
