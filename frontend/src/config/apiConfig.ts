@@ -40,8 +40,6 @@ export const apiLogin = async (email: string, password: string) => {
             }
         });
 
-        console.log('Login response:', response.data); // Agrega esto para depuración
-
         if (!response.data?.access_token) {
             throw new Error('Respuesta de login incompleta - falta access_token');
         }
